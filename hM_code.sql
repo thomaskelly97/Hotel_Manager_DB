@@ -1,6 +1,6 @@
-CREATE DATABASE hotel_manager; 
+CREATE DATABASE hotel_db; 
 SHOW DATABASES; 
-USE hotel_manager;
+USE hotel_db;
 
 CREATE TABLE company ( company_name VARCHAR(150) NOT NULL,
 				worth INT NOT NULL,
@@ -14,14 +14,17 @@ CREATE TABLE hotel ( branch_id VARCHAR(150) NOT NULL,
                 location VARCHAR(150) NOT NULL,
                 rating INT NOT NULL,
                 PRIMARY KEY (branch_id),
-                FOREIGN KEY(company_name) REFERENCES company(company_name));
+                FOREIGN KEY(company_name) REFERENCES company(company_name),
+                CONSTRAINT check_rating CHECK (rating <= 5));
                 
 CREATE TABLE room ( room_id INT NOT NULL,
 				room_type VARCHAR(150) NOT NULL,
 				branch_id VARCHAR(150) NOT NULL,
                 cost_p_night INT NOT NULL,
                 PRIMARY KEY (room_id),
-                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id));
+                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id),
+                CONSTRAINT check_type CHECK (room_type IN ("single", "double", 
+							"triple", "family")));
                 
 CREATE TABLE staff ( staff_id INT NOT NULL,
 				branch_id VARCHAR(150) NOT NULL,
@@ -29,14 +32,16 @@ CREATE TABLE staff ( staff_id INT NOT NULL,
                 staff_name VARCHAR(150) NOT NULL,
                 salary INT NOT NULL,
                 PRIMARY KEY (staff_id),
-                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id));
+                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id), 
+                CONSTRAINT check_id CHECK (staff_id < 10000000000));
                 
 CREATE TABLE reservation ( booking_id INT NOT NULL,
 				room_id INT NOT NULL,
-                duraton INT NOT NULL,
+                duration INT NOT NULL,
                 branch_id VARCHAR(150) NOT NULL,
                 PRIMARY KEY (booking_id),
-                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id));
+                FOREIGN KEY(branch_id) REFERENCES hotel(branch_id),
+                CONSTRAINT check_duration CHECK (duration < 30));
                 
 CREATE TABLE guest ( guest_id INT NOT NULL,
 				booking_id INT NOT NULL,
@@ -84,6 +89,25 @@ INSERT INTO guest VALUES (130, 33, "Sean", "seany@gmail.com", 8343333);
 INSERT INTO guest VALUES (140, 44, "Harry", "h97@gmail.com", 8344444);
 INSERT INTO guest VALUES (150, 55, "Declan", "deco@gmail.com", 8345555);
 
+CREATE TRIGGER guest_trigger
+    BEFORE DELETE ON reservation
+    FOR EACH ROW
+    DELETE FROM guest
+    WHERE booking_id IN(SELECT booking_id 
+    FROM reservation WHERE booking_id = reservation.booking_id);
+
+CREATE VIEW traveller(company_name, location, rating, cost_p_night) AS
+SELECT company.company_name, location, rating, cost_p_night 
+FROM company, hotel, room;
+
+CREATE VIEW hotel_owner(company_name, num_hotels, worth, val, amt_rooms, location) AS 
+SELECT company.company_name, num_hotels, worth, val, amt_rooms, location
+FROM company, hotel;
+
+CREATE VIEW manager(amt_rooms, rating, val, staff_name, salary, staff_id, booking_id) AS
+SELECT amt_rooms, rating, val, staff_name, salary, staff_id, reservation.booking_id
+FROM hotel, staff, guest, reservation, room; 
+
 SELECT * FROM company; 
 SELECT * FROM hotel;
 SELECT * FROM staff; 
@@ -91,5 +115,4 @@ SELECT * FROM guest;
 SELECT * FROM reservation; 
 SELECT * FROM room; 
 
-
-DROP DATABASE hotel_manager; 
+DROP DATABASE hotel_db; 
